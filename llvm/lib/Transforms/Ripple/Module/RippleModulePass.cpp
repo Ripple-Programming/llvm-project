@@ -16,6 +16,8 @@
 #include "llvm/IR/DiagnosticInfo.h"
 #include "llvm/IR/PassInstrumentation.h"
 #include "llvm/Transforms/InstCombine/InstCombine.h"
+#include "llvm/Transforms/Ripple/Preprocess/RippleFPExtFPTrunc.h"
+#include "llvm/Transforms/Ripple/Preprocess/RippleFPExtFPTruncRevert.h"
 #include "llvm/Transforms/Ripple/Ripple.h"
 #include <stack>
 
@@ -67,6 +69,7 @@ PreservedAnalyses RippleModulePass::run(Module &M, ModuleAnalysisManager &MAM) {
   };
 
   FunctionPassManager PreProcessPasses;
+  PreProcessPasses.addPass(RippleFPExtFPTruncRevertPass());
   for (auto &F : M) {
     if (!F.isDeclaration()) {
       PreservedAnalyses PassPA = PreProcessPasses.run(F, FAM);
@@ -232,6 +235,7 @@ PreservedAnalyses RippleModulePass::run(Module &M, ModuleAnalysisManager &MAM) {
   }
 
   FunctionPassManager PostProcessPasses;
+  PostProcessPasses.addPass(RippleFPExtFPTruncPass());
   PostProcessPasses.addPass(InstCombinePass());
   for (auto &F : M) {
     Ripple::eraseFunctionSpecializationRelatedMetadata(F);
