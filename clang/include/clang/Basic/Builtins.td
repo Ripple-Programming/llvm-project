@@ -5290,3 +5290,5 @@ def CountedByRef : Builtin {
   let Attributes = [NoThrow, CustomTypeChecking];
   let Prototype = "int(...)";
 }
+
+include "clang/Basic/BuiltinsRipple.td"
