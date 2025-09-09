@@ -1624,4 +1624,14 @@ def ConvertXeGPUToXeVMPass : Pass<"convert-xegpu-to-xevm"> {
                            "gpu::GPUDialect", "scf::SCFDialect"];
 }
 
+//===----------------------------------------------------------------------===//
+// RippleToLLVM
+//===----------------------------------------------------------------------===//
+
+def RippleToLLVM : Pass<"convert-ripple-to-llvm"> {
+  let summary = "Lower `ripple` to LLVM IR dialect.";
+  let constructor = "mlir::createRippleToLLVMPass()";
+  let dependentDialects = ["LLVM::LLVMDialect", "ripple::RippleDialect"];
+}
+
 #endif // MLIR_CONVERSION_PASSES
