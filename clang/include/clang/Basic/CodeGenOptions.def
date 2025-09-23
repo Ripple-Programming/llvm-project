@@ -486,6 +486,9 @@ CODEGENOPT(StaticClosure, 1, 0, Benign)
 /// Assume that UAVs/SRVs may alias
 CODEGENOPT(ResMayAlias, 1, 0, Benign)
 
+/// Enable the Ripple pass
+CODEGENOPT(EnableRipple, 1, 0, Benign)
+
 /// Controls how unwind v2 (epilog) information should be generated for x64
 /// Windows.
 ENUM_CODEGENOPT(WinX64EHUnwindV2, WinX64EHUnwindV2Mode,
