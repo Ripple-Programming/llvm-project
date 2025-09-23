@@ -1175,7 +1175,10 @@ void EmitAssemblyHelper::RunOptimizationPipeline(
       });
     }
 
-    if (LangOpts.Ripple)
+    //
+    // Ripple
+    ///
+    if (CodeGenOpts.EnableRipple)
       PB.registerOptimizerEarlyEPCallback(
           [TM = std::ref(TM)](ModulePassManager &MPM, OptimizationLevel Level,
                               ThinOrFullLTOPhase Phase) {
