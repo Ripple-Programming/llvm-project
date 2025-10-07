@@ -540,7 +540,7 @@ class Ripple;
 class NDLoadStoreFactory {
 public:
   NDLoadStoreFactory(IRBuilder<> &IrBuilder, Module &Mod, Ripple &MyRipple)
-      : IrBuilder(IrBuilder), Mod(Mod), MyRipple(MyRipple){};
+      : IrBuilder(IrBuilder), Mod(Mod), MyRipple(MyRipple) {};
 
   /// @brief Generates a n-d load of a data set described by AddressSeries
   /// @param AddressSeries represents the sequence of addresses to be loaded
@@ -612,7 +612,7 @@ private:
   // @param StrideDims (output) will indicate which
   //        dimensions have regular non-unit strides, according to AddressSeries
   bool analyzeCoalescing(Type *ElementTy, LinearSeries &AddressSeries,
-                         BitVector &StrideDims);
+                         BitVector &StrideDims, Instruction *I);
 
   /// @brief Generates a n-d load of a data set described by AddressSeries,
   ///        With the assumption that AddressSeries doesn't contain a splat /
@@ -1047,6 +1047,10 @@ public:
   /// has not been created yet
   Function *
   retrieveFinalSpecializationDecl(const Function *PendingSpecialization) const;
+
+  /// @brief Gets the OptimizationRemarkEmitter object associated with the
+  /// instance of the Ripple class.
+  OptimizationRemarkEmitter &getORE();
 
 private:
   /// @brief Datatype returned when constructing linear series
@@ -1882,8 +1886,9 @@ private:
   /// @brief Returns the tensor shapes of the intrinsic arguments and the
   /// intrinsic return type
   std::pair<SmallVector<const TensorShape *>, Type *>
-  promotedIntrinsicArgShapesAndReturnTy(const CallInst &CI, const TensorShape &TShape,
-                                Intrinsic::ID VectorIntrId) const;
+  promotedIntrinsicArgShapesAndReturnTy(const CallInst &CI,
+                                        const TensorShape &TShape,
+                                        Intrinsic::ID VectorIntrId) const;
 };
 
 inline raw_ostream &operator<<(raw_ostream &OS, const Ripple::CSState &State) {
