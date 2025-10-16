@@ -15,6 +15,7 @@
 #include "llvm/Analysis/CallGraph.h"
 #include "llvm/IR/DiagnosticInfo.h"
 #include "llvm/IR/PassInstrumentation.h"
+#include "llvm/Transforms/InstCombine/InstCombine.h"
 #include "llvm/Transforms/Ripple/Ripple.h"
 #include <stack>
 
@@ -64,6 +65,16 @@ PreservedAnalyses RippleModulePass::run(Module &M, ModuleAnalysisManager &MAM) {
     // analyses will eventually occur when the module pass completes.
     PA.intersect(std::move(PassPA));
   };
+
+  FunctionPassManager PreProcessPasses;
+  for (auto &F : M) {
+    if (!F.isDeclaration()) {
+      PreservedAnalyses PassPA = PreProcessPasses.run(F, FAM);
+      FAM.invalidate(F, PassPA);
+      PI.runAfterPass(PreProcessPasses, F, PassPA);
+      PA.intersect(std::move(PassPA));
+    }
+  }
 
   DenseSet<AssertingVH<Function>> AlreadyProcessed;
 
@@ -220,8 +231,17 @@ PreservedAnalyses RippleModulePass::run(Module &M, ModuleAnalysisManager &MAM) {
     return PreservedAnalyses::none();
   }
 
-  for (auto &F : M)
+  FunctionPassManager PostProcessPasses;
+  PostProcessPasses.addPass(InstCombinePass());
+  for (auto &F : M) {
     Ripple::eraseFunctionSpecializationRelatedMetadata(F);
+    if (!F.isDeclaration()) {
+      PreservedAnalyses PassPA = PostProcessPasses.run(F, FAM);
+      FAM.invalidate(F, PassPA);
+      PI.runAfterPass(PostProcessPasses, F, PassPA);
+      PA.intersect(std::move(PassPA));
+    }
+  }
 
   return PA;
 }
