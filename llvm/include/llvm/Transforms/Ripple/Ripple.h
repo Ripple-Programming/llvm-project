@@ -298,8 +298,7 @@ public:
         TensorDimIDMap(buildPEIdMap()),
         AssumptionCache(AM.getResult<AssumptionAnalysis>(F)),
         SQ(DL, &targetLibraryInfo, &domTree, &AssumptionCache),
-        ScalarShape(TensorShape(tensorRank())),
-        PS(PS),
+        ScalarShape(TensorShape(tensorRank())), PS(PS),
         SpecializationsPending(SpecializationsPending),
         SpecializationsAvailable(SpecializationsAvailable) {
     // Set the types
@@ -308,9 +307,13 @@ public:
     }
   }
 
-  ~Ripple() {
-    delete FuncRPOT;
-  }
+  ~Ripple() { delete FuncRPOT; }
+
+  /// @brief Validate that Ripple intrinsics throughout the function are
+  /// consistent with the specification.
+  /// @return Error::success if the specification is followed, an error
+  /// otherwise
+  Error validate() const;
 
   /// @brief Ripple cannot be copied!
   Ripple(const Ripple &) = delete;
@@ -596,7 +599,6 @@ private:
   computeRippleShapeForBitsetIntrinsic(const IntrinsicInst *I,
                                        const TensorShape &IShape);
 
-
   /// @brief Tests if all the reachable instruction of the function have an
   /// associated Ripple shape
   /// @return true if all instructions have a ripple shape, false otherwise
@@ -627,6 +629,35 @@ private:
 
   /// @brief Returns true if there are no vector dimensions, false otherwise
   bool hasNoVectorDimension() const;
+
+  /// @brief Checks for any semantics issue with the use of ripple intrinsics or
+  /// vectorization (if-conversion, impossible vector instruction generation,
+  /// etc)
+  Error checkRippleSemantics();
+
+  /// @brief Checks the given ripple block intrinsics for issues
+  Error checkRippleBlockIntrinsics(IntrinsicInst *I);
+
+  /// @brief Checks the given reduction intrinsics for issues
+  Error checkRippleReductionIntrinsics(IntrinsicInst *I);
+
+  /// @brief Checks the given shuffle intrinsics for issues
+  Error checkRippleShuffleIntrinsics(IntrinsicInst *I);
+
+  /// @brief Checks the given rot-to-lower intrinsics for issues
+  Error checkRippleRotToLowerIntrinsics(IntrinsicInst *I);
+
+  /// @brief Checks that vector branch apply to a SESE region
+  Error checkVectorBranch(Instruction *BranchOrSwitch);
+
+  /// @brief Checks that creating a vector type for I is valid
+  Error checkTypeCanBeVectorized(const Instruction *I);
+
+  /// @brief Checks that vector store are valid
+  Error checkRippleStore(const StoreInst *I) const;
+
+  /// @brief Checks the function's return
+  Error checkRippleFunctionReturn(const ReturnInst *Return) const;
 
   /// @brief Returns the broadcast of @p ShapeToBeBroadcasted and @p OtherShape
   /// or warns the user that the broadcast could not happen and returns an Error
@@ -678,6 +709,10 @@ private:
         .second;
   }
 
+  /// @brief Returns true if this instruction requires masking during the
+  /// if-conversion process, false otherwise
+  bool maskInstructionWhenIfConvert(const Instruction *I) const;
+
   /// @brief The reverse post-order of BBs in F. Note that if \ref FuncRPOT is
   /// invalid this method performs the reverse post order traversal analysis.
   /// This is analysis is expensive, hence invocation of this method comes with
@@ -708,6 +743,19 @@ private:
   /// arguments.
   bool rippleVectorizeCall(const CallInst &CI) const;
 };
+
+/**
+ * @brief Returns `true` iff BranchingBB has exactly size two (immediate)
+ * successors, and, exactly one of them exhibits a cycle through `BranchingBB`
+ * that does not go through PDom.
+ *
+ * @param BranchingBB The Basic block with a branc which is to be checked for a
+ * trivial loop-like back-edge.
+ * @param PDom Immediate post-dominator of BranchingBB.
+ * @param Targets All Targets of BranchingBB.
+ */
+bool hasTrivialLoopLikeBackEdge(BasicBlock *BranchingBB, BasicBlock *PDom,
+                                DominatorTreeAnalysis::Result &DT);
 
 } // namespace llvm
 
