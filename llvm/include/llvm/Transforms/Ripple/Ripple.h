@@ -24,6 +24,7 @@
 #include "llvm/Analysis/SimplifyQuery.h"
 #include "llvm/Analysis/TargetLibraryInfo.h"
 #include "llvm/Analysis/TargetTransformInfo.h"
+#include "llvm/IR/DIBuilder.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/Support/Error.h"
 #include <map>
@@ -1058,6 +1059,10 @@ private:
   /// @brief Generates vector instructions for each vector Ripple shape
   void genVectorInstructions();
 
+  /// @brief Post-process the function to remove scalar Instructions that have
+  /// been vectorized.
+  void vectorGenerationPostProcess();
+
   /// @brief Get the tensorUse of \p I's operands, indexed in range [StartIdx,
   /// EndIdx[, broadcast each of them to \p ToShape and return the resulting
   /// vector of broadcasted operands
@@ -1323,6 +1328,16 @@ private:
 
   /// @brief Checks the function's return
   Error checkRippleFunctionReturn(const ReturnInst *Return) const;
+
+  /// @brief Creates a DILocalVariable of vector type from a scalar
+  /// DILocalVariable, or nullptr if the DILocalVariable has no type
+  DILocalVariable *createVectorLocalFromScalarLocal(
+      DIBuilder &DIB, DILocalVariable *LocalVariable, const TensorShape &Shape);
+
+  /// @brief Fixes Variable Debug intrinsics (llvm.dbg) or records with vector
+  /// types if we replaced the value being targeted by the debug info.
+  template <typename T>
+  void processDebugIntrinsicOrRecord(DIBuilder &DIB, T &DbgMetadata);
 
   /// @brief Returns the broadcast of @p ShapeToBeBroadcasted and @p OtherShape
   /// or warns the user that the broadcast could not happen and returns an Error
