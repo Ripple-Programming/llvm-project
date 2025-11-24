@@ -927,6 +927,16 @@ public:
   /// @brief Propagate shapes throughout the function
   Error propagateShapes(bool &WaitingForSpecialization);
 
+  /// @brief Transform the function!
+  /// @return the set of analysis that are preserved
+  PreservedAnalyses run();
+
+  /// @brief Cleans ripple intrinsics from the IR and returns preserved analysis
+  ///
+  /// This leaves a valid IR with the version of the program assuming a single
+  /// vector lane (scalar).
+  PreservedAnalyses cleanupRippleSingleLane(ProcessingStatus);
+
   /// @brief Returns the rank of the tensors used by Ripple.
   /// @return the rank of Ripple tensors
   inline size_t tensorRank() const { return TensorDimIDMap.size(); };
@@ -1885,6 +1895,24 @@ inline raw_ostream &operator<<(raw_ostream &OS,
     OS << *CS.LS;
   return OS;
 }
+
+class RipplePass : public PassInfoMixin<RipplePass> {
+  TargetMachine *TM;
+  Ripple::ProcessingStatus &PS;
+  DenseSet<AssertingVH<Function>> &SpecializationsPending,
+      &SpecializationsAvailable;
+
+public:
+  RipplePass(TargetMachine *TM, Ripple::ProcessingStatus &PS,
+             DenseSet<AssertingVH<Function>> &SpecializationsPending,
+             DenseSet<AssertingVH<Function>> &SpecializationsAvailable)
+      : TM(TM), PS(PS), SpecializationsPending(SpecializationsPending),
+        SpecializationsAvailable(SpecializationsAvailable) {}
+  PreservedAnalyses run(Function &F, FunctionAnalysisManager &AM);
+
+  // Run Ripple when optnone is set
+  static bool isRequired() { return true; }
+};
 
 namespace RippleCL {
 
