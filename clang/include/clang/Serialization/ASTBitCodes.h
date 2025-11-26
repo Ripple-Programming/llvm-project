@@ -2070,6 +2070,9 @@ enum StmtCode {
   // HLSL Constructs
   EXPR_HLSL_OUT_ARG,
 
+  // Ripple Constructs
+  STMT_RIPPLE_COMPUTE_CONSTRUCT,
+
   STMT_DEFER,
 };
 
