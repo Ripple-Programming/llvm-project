@@ -7043,6 +7043,7 @@ private:
   std::unique_ptr<PragmaHandler> MaxTokensHerePragmaHandler;
   std::unique_ptr<PragmaHandler> MaxTokensTotalPragmaHandler;
   std::unique_ptr<PragmaHandler> RISCVPragmaHandler;
+  std::unique_ptr<PragmaHandler> RippleHandler;
 
   /// Initialize all pragma handlers.
   void initializePragmaHandlers();
