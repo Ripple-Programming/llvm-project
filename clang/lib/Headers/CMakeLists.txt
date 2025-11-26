@@ -91,6 +91,7 @@ set(ripple_files
   ripple_hvx.h
   ripple_math.h
   __ripple_vec.h
+  ripple/zip.h
   )
 
 set(hlsl_h
