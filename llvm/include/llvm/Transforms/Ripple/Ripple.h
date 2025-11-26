@@ -29,6 +29,7 @@
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/Support/Error.h"
 #include <map>
+#include <variant>
 
 namespace llvm {
 
