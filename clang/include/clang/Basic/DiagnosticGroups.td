@@ -1715,6 +1715,7 @@ def OpenACC : DiagGroup<"openacc", [SourceUsesOpenACC]>;
 
 // Ripple warnings.
 def SourceUsesRipple : DiagGroup<"source-uses-ripple">;
+def Ripple : DiagGroup<"ripple", [SourceUsesRipple]>;
 
 // Backend warnings.
 def BackendInlineAsm : DiagGroup<"inline-asm">;
