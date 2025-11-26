@@ -1797,6 +1797,7 @@ void ExprEngine::Visit(const Stmt *S, ExplodedNode *Pred,
     case Stmt::OpenACCAtomicConstructClass:
     case Stmt::OMPUnrollDirectiveClass:
     case Stmt::OMPMetaDirectiveClass:
+    case Stmt::RippleComputeConstructClass:
     case Stmt::HLSLOutArgExprClass: {
       const ExplodedNode *Node = Engine.makePostStmtNode(
           S, Pred->getState(), Pred, /*MarkAsSink=*/true);
