@@ -61,7 +61,7 @@ set(RIPPLE_RT_HEADER_DIR  ${CMAKE_CURRENT_SOURCE_DIR}/header)
 foreach(HEXAGON_ARCH_VERSION IN LISTS HEXAGON_ARCH_VERSIONS)
   set(HEXAGON_FLAGS
       -mv${HEXAGON_ARCH_VERSION}
-      -mhvx=v${HEXAGON_ARCH_VERSION}
+      -mhvx
       -mhvx-qfloat)
   set(RIPPLE_FLAG "-fenable-ripple") # only for HVX_Scatter_Gather
 
@@ -102,7 +102,7 @@ foreach(HEXAGON_ARCH_VERSION IN LISTS HEXAGON_ARCH_VERSIONS)
     RippleLib.${HEXAGON_ARCH_VERSION}
     ARCHS   ${HEXAGON}
     SOURCES ${RIPPLE_RT_SOURCES}
-    CFLAGS  -O2 ${RIPPLE_FLAG} ${HEXAGON_FLAGS} ${RT_INCLUDES} -emit-llvm
+    CFLAGS  ${COMPILER_RT_COMMON_CFLAGS} -O2 ${HEXAGON_FLAGS} ${RT_INCLUDES} -emit-llvm
   )
 
   # Output/Install dirs
