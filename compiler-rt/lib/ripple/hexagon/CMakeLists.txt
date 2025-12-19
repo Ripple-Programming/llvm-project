@@ -1,9 +1,3 @@
-
-if(NOT (${HEXAGON} IN_LIST RIPPLE_SUPPORTED_ARCH))
-  message(FATAL_ERROR "Not compiling. ${RIPPLE_SUPPORTED_ARCH}")
-  return()
-endif()
-
 # ------------------------------------------------------------------------------
 # Function: ripple_add_bc_rules
 # Creates one .bc output per source base name by copying the corresponding object
