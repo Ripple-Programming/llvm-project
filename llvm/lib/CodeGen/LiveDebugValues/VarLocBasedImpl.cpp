@@ -1754,6 +1754,10 @@ void VarLocBasedLDV::transferSpillOrRestoreInst(MachineInstr &MI,
                                                  OpenRangesSet &OpenRanges,
                                                  VarLocMap &VarLocIDs,
                                                  TransferMap &Transfers) {
+  // Do not process terminators.
+  if (MI.isTerminator())
+    return;
+
   MachineFunction *MF = MI.getMF();
   TransferKind TKind;
   Register Reg;
@@ -1849,6 +1853,10 @@ void VarLocBasedLDV::transferRegisterCopy(MachineInstr &MI,
                                            OpenRangesSet &OpenRanges,
                                            VarLocMap &VarLocIDs,
                                            TransferMap &Transfers) {
+  // Do not process terminators.
+  if (MI.isTerminator())
+    return;
+
   auto DestSrc = TII->isCopyLikeInstr(MI);
   if (!DestSrc)
     return;
