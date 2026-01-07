@@ -51,6 +51,33 @@ jobs:
             -DLLVM_DEFAULT_TARGET_TRIPLE=${{ matrix.targets.triple }} \
             -DLLVM_PARALLEL_LINK_JOBS=1
 
+      - name: Build and Link Ripple Runtime
+        if: matrix.targets.arch == 'Hexagon'
+        run: |
+          # Configure and build the Ripple runtime for Hexagon
+          cmake -S ${{ github.workspace }}/compiler-rt -B RTBuild -G Ninja \
+            -DLLVM_CMAKE_DIR=${{ github.workspace }}/build/lib/cmake/llvm \
+            -DCMAKE_C_COMPILER=${{ github.workspace }}/build/bin/clang \
+            -DCMAKE_AR=${{ github.workspace }}/build/bin/llvm-ar \
+            -DCMAKE_NM=${{ github.workspace }}/build/bin/llvm-nm \
+            -DCMAKE_RANLIB=${{ github.workspace }}/build/bin/llvm-ranlib \
+            -DCOMPILER_RT_BUILD_BUILTINS=ON \
+            -DCOMPILER_RT_BUILD_SANITIZERS=OFF \
+            -DCOMPILER_RT_BUILD_XRAY=OFF \
+            -DCOMPILER_RT_BUILD_LIBFUZZER=OFF \
+            -DCOMPILER_RT_BUILD_PROFILE=OFF \
+            -DCOMPILER_RT_DEFAULT_TARGET_ONLY=ON \
+            -DCMAKE_C_COMPILER_TARGET=hexagon-unknown-elf
+
+          cmake --build RTBuild --target RippleLib
+
+          # Symlink the built ripple runtimes into the clang resource directory so lit can find them
+          ln -s ${{ github.workspace }}/RTBuild/lib/hexagon ${{ github.workspace }}/build/lib/clang/21/lib/hexagon
+
+      - name: Signal Runtime Lib Availability
+          if: matrix.targets.arch == 'Hexagon'
+          run: |
+            echo "config.available_features.add('has-ripple-hexagon-rtlib')" >> build/test/lit.site.cfg
       - name: Ripple Clang Lit Tests
         run: |
           cmake --build build --target check-clang-ripple
