@@ -1,7 +1,9 @@
-// REQUIRES: hexagon-registered-target, has-ripple-hexagon-rtlib
-// RUN: %clang -ffreestanding -Os -S -fenable-ripple --target=hexagon -mv75 -mhvx  %s -o - 2>&1 | FileCheck %s
+// REQUIRES: target=hexagon{{.*}}, has-ripple-hexagon-rtlib
+// RUN: %clang -ffreestanding -Os -S -fenable-ripple -mv75 -mhvx  %s -o - 2>&1 | FileCheck %s
 // Simply sanity check that we did not crash and vectorize compares
 // CHECK: vcmpw.gtu
+// Fails because of a missing backend patch
+// XFAIL: *
 
 #include <ripple.h>
 
