@@ -1,4 +1,4 @@
-// REQUIRES: target-x86_64 || target-aarch64
+// REQUIRES: target=hexagon{{.*}}
 // RUN: %clang -ffreestanding -S -fenable-ripple -O2 -emit-llvm %s -o - | FileCheck %s
 // RUN: %clang -ffreestanding -x c++ -S -fenable-ripple -O2 -emit-llvm %s -o - | FileCheck %s
 
@@ -13,10 +13,8 @@ extern "C"
 }
 
 // CHECK: shuffle_index_max_test
-// byte offset 124 = sizeof(float) * 31 in Input2
-// CHECK: [[GEP:%.*]] = getelementptr inbounds nuw i8, ptr %Input2, i64 124
-// CHECK: [[LoadIn2:%.*]] = load <1 x float>, ptr [[GEP]]
-// CHECK: shufflevector <1 x float> [[LoadIn2]], <1 x float> poison, <32 x i{{[0-9]+}}> zeroinitializer
+// CHECK: %[[LoadIn2:[0-9A-Za-z_.]+]] = load <32 x float>, ptr %Input2
+// CHECK: shufflevector <32 x float> %[[LoadIn2]], <32 x float> poison, <32 x i{{[0-9]+}}> <i{{[0-9]+}} 31, i{{[0-9]+}} 31, i{{[0-9]+}} 31, i{{[0-9]+}} 31, i{{[0-9]+}} 31, i{{[0-9]+}} 31, i{{[0-9]+}} 31, i{{[0-9]+}} 31, i{{[0-9]+}} 31, i{{[0-9]+}} 31, i{{[0-9]+}} 31, i{{[0-9]+}} 31, i{{[0-9]+}} 31, i{{[0-9]+}} 31, i{{[0-9]+}} 31, i{{[0-9]+}} 31, i{{[0-9]+}} 31, i{{[0-9]+}} 31, i{{[0-9]+}} 31, i{{[0-9]+}} 31, i{{[0-9]+}} 31, i{{[0-9]+}} 31, i{{[0-9]+}} 31, i{{[0-9]+}} 31, i{{[0-9]+}} 31, i{{[0-9]+}} 31, i{{[0-9]+}} 31, i{{[0-9]+}} 31, i{{[0-9]+}} 31, i{{[0-9]+}} 31, i{{[0-9]+}} 31, i{{[0-9]+}} 31>
 void shuffle_index_max_test(size_t ArraySize, float *Input, float *Input2,
                             float *Output) {
   ripple_block_t BS = ripple_set_block_shape(0, 32);
