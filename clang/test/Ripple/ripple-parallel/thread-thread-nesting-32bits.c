@@ -236,8 +236,9 @@
 // CHECK:       [[RIPPLE_PAR_FOR_END67]]:
 // CHECK-NEXT:    ret void
 //
-void check(int Chunk, int64_t N, int32_t start, int64_t end, float x[restrict N],
-           float y[restrict N], float xpy[restrict N]) {
+void check(int Chunk, long long N, long start, long long end,
+           float x[restrict N], float y[restrict N],
+           float xpy[restrict N]) {
   ripple_block_t BST = ripple_set_block_shape(32, 32);
   ripple_block_t BSV = ripple_set_block_shape(33, 4, 4);
   #ifdef USING_PRAGMA

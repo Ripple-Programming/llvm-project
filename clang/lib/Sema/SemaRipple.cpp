@@ -265,7 +265,7 @@ bool RippleIterationSpaceChecker::setUB(Expr *NewUB, std::optional<bool> LessOp,
          Step == nullptr && !TestIsLessOp && !TestIsStrictOp);
   if (!NewUB || NewUB->containsErrors())
     return true;
-  UB = NewUB;
+  UB = SemaRef.ActOnParenExpr(DefaultLoc, DefaultLoc, NewUB).get();
   if (LessOp)
     TestIsLessOp = LessOp;
   TestIsStrictOp = StrictOp;
@@ -596,7 +596,7 @@ bool RippleIterationSpaceChecker::setLCDeclAndLB(ValueDecl *NewLCDecl,
            Ctor->isConvertingConstructor(/*AllowExplicit=*/false)) &&
           CE->getNumArgs() > 0 && CE->getArg(0) != nullptr)
         NewLB = CE->getArg(0)->IgnoreParenImpCasts();
-  LB = NewLB;
+  LB = SemaRef.ActOnParenExpr(DefaultLoc, DefaultLoc, NewLB).get();
   if (EmitDiags)
     doesDependOnLoopCounter(LB, /*Init = 0*/ 0);
   return false;
@@ -1282,14 +1282,16 @@ createIndexAndSizeExprs(Sema &SemaRef, SourceLocation Loc,
 
 Expr *createOriginLB(Sema &SemaRef, SourceLocation Loc, Expr *LoopInit,
                      Expr *LoopIV, bool LBIsLoopIV) {
-  auto T = LoopInit->getType();
+  auto T = LoopIV->getType();
   VarDecl *OriginLB =
       buildVarDecl(SemaRef, Loc, T, "ripple.par.origin.LB", nullptr);
   assert(!OriginLB->isInvalidDecl());
-  if (LBIsLoopIV)
-    SemaRef.AddInitializerToDecl(OriginLB, LoopIV, false);
-  else
-    SemaRef.AddInitializerToDecl(OriginLB, LoopInit, false);
+  Expr *Which = LBIsLoopIV ? LoopIV : LoopInit;
+  SourceLocation B = Which->getBeginLoc(), E = Which->getEndLoc();
+  SemaRef.AddInitializerToDecl(
+      OriginLB, SemaRef.ActOnParenExpr(B, E, Which).get(), false);
+  LLVM_DEBUG(llvm::dbgs() << "Par origin: "; OriginLB->dump(llvm::dbgs());
+             llvm::dbgs() << "\n");
   return buildDeclRefExpr(SemaRef, OriginLB, T, Loc);
 }
 
