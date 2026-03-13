@@ -3866,6 +3866,12 @@ void Ripple::genVectorInstructions() {
     // Check if the call matches any specific ripple intrinsic
     if (IntrinsicInst *rippleDim = rippleBlockIntrinsics(call)) {
       processRippleBlock(rippleDim, toShape);
+    } else if (match(call, m_Intrinsic<Intrinsic::assume>())) {
+      // llvm.assume is a compiler hint with no observable effect. Drop it
+      // only when its operand was actually vectorized (toShape is a vector);
+      // the assumption no longer holds lane-by-lane after vectorization anyway.
+      if (toShape.isVector())
+        setReplacementFor(call, nullptr, toShape);
     } else if (IntrinsicInst *RippleBroadcast =
                    rippleBroadcastIntrinsic(call)) {
       processRippleBroadcast(RippleBroadcast, toShape);
@@ -4397,7 +4403,8 @@ void Ripple::vectorGenerationPostProcess() {
       for (auto *User : I->users()) {
         if (Instruction *UserInst = dyn_cast<Instruction>(User))
           if (!InstructionReplacementMapping.contains(UserInst) &&
-              !(isa<BranchInst>(UserInst) || isa<SwitchInst>(UserInst))) {
+              !(isa<BranchInst>(UserInst) || isa<SwitchInst>(UserInst)) &&
+              !match(UserInst, m_Intrinsic<Intrinsic::assume>())) {
             LLVM_DEBUG(dbgs()
                        << "Instruction " << *I << " has a non-vectorized user "
                        << *User << "\n");
