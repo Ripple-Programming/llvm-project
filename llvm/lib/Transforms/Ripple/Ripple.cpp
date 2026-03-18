@@ -1841,8 +1841,8 @@ void Ripple::padToTargetSIMDWidth() {
   /// PaddedLength number of elements.
   /// Note: The following things must be true about \p V:
   /// - V should be a constant, OR,
-  /// - V must be an instruction previously padded and must have its record in
-  /// InstToPadded, InstToPaddedLength.
+  /// - V must be an instruction previously padded with its natural padded
+  /// length and must have its record in InstToPadded.
   auto GetPaddedV =
       [this, &GetPaddedLength](
           Value *V, const unsigned PaddedLength,
@@ -1916,8 +1916,16 @@ void Ripple::padToTargetSIMDWidth() {
         return It->second;
       }
       auto NaturalPaddedLngthI = GetPaddedLength(I);
+      // Note: the contract offered by `InstToPadded` is that an input
+      // Instruction, Inst, must have been padded with its
+      // "GetPaddedLength(Inst)" earlier to calling this routine.
       auto *VWithDifferentPad =
           dyn_cast<Instruction>(InstToPadded.at({I, NaturalPaddedLngthI}));
+
+      std::vector<int> MaskEls(PaddedLength, -1);
+      for (unsigned IEl = 0; IEl < std::min(PaddedLength, NaturalPaddedLngthI);
+           ++IEl)
+        MaskEls[IEl] = IEl;
 
       LLVM_DEBUG(dbgs() << "[padToTargetSIMD] Expanding " << *VWithDifferentPad
                         << " to " << PaddedLength << ".\n";);
@@ -1926,11 +1934,6 @@ void Ripple::padToTargetSIMDWidth() {
       auto OldIP = irBuilder.saveIP();
       // step 2. insert the concatenation.
       setInsertPointAfter(irBuilder, VWithDifferentPad);
-
-      std::vector<int> MaskEls(PaddedLength, -1);
-      for (unsigned IEl = 0; IEl < std::min(PaddedLength, NaturalPaddedLngthI);
-           ++IEl)
-        MaskEls[IEl] = IEl;
 
       auto *PaddedV = irBuilder.CreateShuffleVector(
           VWithDifferentPad, MaskEls, VWithDifferentPad->getName() + ".pad");
@@ -2387,15 +2390,10 @@ void Ripple::padToTargetSIMDWidth() {
 
       SmallVector<Value *> Operands(IntrnscInst->arg_begin(),
                                     IntrnscInst->arg_end());
-      unsigned PaddedLength = GetMaxPaddedLength(Operands);
-      if (IntrnscInst->getType()->isVectorTy()) {
-        auto [EVTType, LegalVT] = GetEvtLegalTypes(IntrnscInst);
-        PaddedLength = std::max(PaddedLength, LegalVT.getVectorNumElements());
-      }
-
       if (IntrnscInst->getIntrinsicID() == Intrinsic::masked_load) {
-        unsigned UnpaddedLength =
-            GetEvtLegalTypes(IntrnscInst).first.getVectorNumElements();
+        auto [EVTType, LegalVT] = GetEvtLegalTypes(IntrnscInst);
+        auto PaddedLength = LegalVT.getVectorNumElements();
+        auto UnpaddedLength = EVTType.getVectorNumElements();
         irBuilder.SetInsertPoint(IntrnscInst);
         auto *NewLoadTy = VectorType::get(
             IntrnscInst->getType()->getScalarType(), PaddedLength, false);
@@ -2425,9 +2423,12 @@ void Ripple::padToTargetSIMDWidth() {
                                       NewMaskedLoad);
         InstructionsToRemove.push_back(IntrnscInst);
       } else if (IntrnscInst->getIntrinsicID() == Intrinsic::masked_store) {
+        auto [EVTType, LegalVT] =
+            GetEvtLegalTypes(IntrnscInst->getArgOperand(0));
+        auto PaddedLength = LegalVT.getVectorNumElements();
+        auto UnpaddedLength = EVTType.getVectorNumElements();
+
         irBuilder.SetInsertPoint(IntrnscInst);
-        auto UnpaddedLength = GetEvtLegalTypes(IntrnscInst->getArgOperand(0))
-                                  .first.getVectorNumElements();
 
         Value *NewVal = GetPaddedV(IntrnscInst->getArgOperand(0), PaddedLength,
                                    InstToPadded);
@@ -2443,11 +2444,16 @@ void Ripple::padToTargetSIMDWidth() {
                                 PaddedMask->getName() + ".pad");
         Align AlignVal(IntrnscInst->getParamAlign(1).valueOrOne());
 
-        irBuilder.CreateMaskedStore(NewVal, IntrnscInst->getArgOperand(1),
-                                    AlignVal, NewMask);
+        [[maybe_unused]] auto *NewMaskedStore = irBuilder.CreateMaskedStore(
+            NewVal, IntrnscInst->getArgOperand(1), AlignVal, NewMask);
+        LLVM_DEBUG(dbgs() << "[PadToTargetSIMD] Maked Store, " << *IntrnscInst
+                          << " was replaced with " << *NewMaskedStore
+                          << ".\n";);
         InstructionsToRemove.push_back(IntrnscInst);
       } else if (IntrnscInst->getIntrinsicID() == Intrinsic::masked_gather) {
-        unsigned UnpaddedLength =
+        auto PaddedLength =
+            GetMaxPaddedLength({IntrnscInst->getArgOperand(0), IntrnscInst});
+        auto UnpaddedLength =
             GetEvtLegalTypes(IntrnscInst).first.getVectorNumElements();
 
         irBuilder.SetInsertPoint(IntrnscInst);
@@ -2490,6 +2496,8 @@ void Ripple::padToTargetSIMDWidth() {
 
         InstructionsToRemove.push_back(IntrnscInst);
       } else if (IntrnscInst->getIntrinsicID() == Intrinsic::masked_scatter) {
+        auto PaddedLength = GetMaxPaddedLength(
+            {IntrnscInst->getArgOperand(0), IntrnscInst->getArgOperand(1)});
         auto UnpaddedLength = GetEvtLegalTypes(IntrnscInst->getArgOperand(0))
                                   .first.getVectorNumElements();
         irBuilder.SetInsertPoint(IntrnscInst);
@@ -2515,6 +2523,11 @@ void Ripple::padToTargetSIMDWidth() {
       } else if (auto VectorIntrnscId = getVectorIntrinsicIDForCall(
                      IntrnscInst, &targetLibraryInfo);
                  VectorIntrnscId != Intrinsic::not_intrinsic) {
+        unsigned PaddedLength = GetMaxPaddedLength(Operands);
+        if (IntrnscInst->getType()->isVectorTy()) {
+          auto [EVTType, LegalVT] = GetEvtLegalTypes(IntrnscInst);
+          PaddedLength = std::max(PaddedLength, LegalVT.getVectorNumElements());
+        }
 
         auto *NewTy = VectorType::get(IntrnscInst->getType()->getScalarType(),
                                       PaddedLength, false);
