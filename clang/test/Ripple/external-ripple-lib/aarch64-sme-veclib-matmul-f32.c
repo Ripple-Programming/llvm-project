@@ -25,7 +25,7 @@ void ripple_t1x32f32_t32f32_sme_outeracc(
 
 #else
 #include <arm_sme.h>
-#include <ripple.h>
+#include "../ripple_test.h"
 
 #define SME_SIZE 32
 

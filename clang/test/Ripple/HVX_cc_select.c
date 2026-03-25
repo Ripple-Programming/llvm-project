@@ -3,7 +3,7 @@
 // Simply sanity check that we did not crash and vectorize compares
 // CHECK: vcmpw.gtu
 
-#include <ripple.h>
+#include "ripple_test.h"
 
 void nkctv_nkvw_nctw_dram_0(const uint8_t* aptr, const uint8_t* bptr, uint8_t* cptr, size_t T, size_t W) {
 

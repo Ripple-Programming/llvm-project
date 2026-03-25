@@ -3,9 +3,8 @@
 // RUN: %clang -g -S -O2 -emit-llvm -fenable-ripple %s -o - 2>&1 | FileCheck %s --implicit-check-not="warning:" --implicit-check-not="error:"
 // RUN: %clang -g -S -O3 -emit-llvm -fenable-ripple %s -o - 2>&1 | FileCheck %s --implicit-check-not="warning:" --implicit-check-not="error:"
 
-#include <ripple.h>
-#include <stdbool.h>
-
+#include "ripple_test.h"
+typedef _Bool bool;
 
 /// Test that -fenable-ripple applies without errors
 /// for certain non-SESE CFGs.

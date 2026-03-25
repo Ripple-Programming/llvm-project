@@ -6,7 +6,7 @@
 // pointers cause the UB optimizer to eliminate memory accesses before the
 // Ripple pass runs.
 
-#include <ripple.h>
+#include "../ripple_test.h"
 
 static int *in_int;
 static int *out_int;

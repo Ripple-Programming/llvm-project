@@ -1,7 +1,7 @@
 // REQUIRES: hexagon-registered-target
 // RUN: %clang -S --target=hexagon -mhvx -mv81 -mhvx-length=128B -O2 -fenable-ripple -fdisable-ripple-lib -mllvm -ripple-pad-to-target-simd -emit-llvm %s -o - 2>&1 | FileCheck %s
 
-#include <ripple.h>
+#include "../ripple_test.h"
 
 int32_t check_that_reduceadd_is_padded1(int32_t a[20]) {
   ripple_block_t BS = ripple_set_block_shape(0, 20);

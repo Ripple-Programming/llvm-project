@@ -11,6 +11,7 @@
 //==============================================================================
 
 #include "lib_func_attrib.h"
+#include <cstdint>
 #include <hexagon_protos.h>
 #include <ripple_hvx.h>
 
