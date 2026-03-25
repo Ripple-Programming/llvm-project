@@ -99,16 +99,16 @@
 // RUN:   -resource-dir=%S/Inputs/resource_dir %s 2>&1 | FileCheck -check-prefix=CHECK008 %s
 // CHECK008:   InstalledDir: [[INSTALLED_DIR:.+]]
 // CHECK008:   "-resource-dir" "[[RESOURCE:[^"]+]]"
-// CHECK008-SAME: {{^}} "-internal-isystem" "[[RESOURCE]]/include"
-// CHECK008-SAME: {{^}} "-internal-externc-isystem" "[[INSTALLED_DIR]]/../target/hexagon/include"
+// CHECK008-SAME: {{^}} "-internal-isystem" "[[RESOURCE]]{{/|\\\\}}include"
+// CHECK008-SAME: {{^}} "-internal-externc-isystem" "[[INSTALLED_DIR]]{{/|\\\\}}..{{/|\\\\}}target{{/|\\\\}}hexagon{{/|\\\\}}include"
 
 // RUN: %clang -### --target=hexagon-unknown-linux \
 // RUN:   -ccc-install-dir %S/Inputs/hexagon_tree/Tools/bin \
 // RUN:   -resource-dir=%S/Inputs/resource_dir %s 2>&1 | FileCheck -check-prefix=CHECK009 %s
 // CHECK009:   InstalledDir: [[INSTALLED_DIR:.+]]
 // CHECK009:   "-resource-dir" "[[RESOURCE:[^"]+]]"
-// CHECK009-SAME: {{^}} "-internal-isystem" "[[RESOURCE]]/include"
-// CHECK009-SAME: {{^}} "-internal-externc-isystem" "[[INSTALLED_DIR]]/../target/hexagon/include"
+// CHECK009-SAME: {{^}} "-internal-isystem" "[[RESOURCE]]{{/|\\\\}}include"
+// CHECK009-SAME: {{^}} "-internal-externc-isystem" "[[INSTALLED_DIR]]{{/|\\\\}}..{{/|\\\\}}target{{/|\\\\}}hexagon/include"
 
 // RUN: %clang -Werror -L/tmp \
 // RUN:    --target=hexagon-unknown-linux-musl %s -### 2>&1 \
