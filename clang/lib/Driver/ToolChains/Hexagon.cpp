@@ -596,9 +596,9 @@ void HexagonToolChain::getHexagonLibraryPaths(const ArgList &Args,
   std::copy(D.PrefixDirs.begin(), D.PrefixDirs.end(),
             std::back_inserter(RootDirs));
 
-  std::string TargetDir = getHexagonTargetDir(D.Dir, D.PrefixDirs);
-  if (!llvm::is_contained(RootDirs, TargetDir))
-    RootDirs.push_back(TargetDir);
+  std::string SysRoot(getEffectiveSysRoot());
+  if (!llvm::is_contained(RootDirs, SysRoot))
+    RootDirs.push_back(SysRoot);
 
   bool HasPIC = Args.hasArg(options::OPT_fpic, options::OPT_fPIC);
   // Assume G0 with -shared.
@@ -608,7 +608,7 @@ void HexagonToolChain::getHexagonLibraryPaths(const ArgList &Args,
 
   const std::string CpuVer = GetTargetCPUVersion(Args).str();
   for (auto &Dir : RootDirs) {
-    std::string LibDir = Dir + "/hexagon/lib";
+    std::string LibDir = Dir + "/lib";
     std::string LibDirCpu = LibDir + '/' + CpuVer;
     if (HasG0) {
       if (HasPIC)

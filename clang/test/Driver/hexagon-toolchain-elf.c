@@ -589,6 +589,8 @@
 // RUN:   --sysroot=/hexagon %s 2>&1 | FileCheck -check-prefix=CHECK383 %s
 // CHECK383:          "-isysroot" "/hexagon"
 // CHECK383:          "-internal-externc-isystem" "/hexagon{{/|\\\\}}include"
+// CHECK383:          "-L/hexagon{{/|\\\\}}lib{{/|\\\\}}v60"
+// CHECK383:          "-L/hexagon{{/|\\\\}}lib"
 // -----------------------------------------------------------------------------
 // Passing -fno-use-init-array
 // -----------------------------------------------------------------------------
