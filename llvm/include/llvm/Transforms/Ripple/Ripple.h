@@ -1678,6 +1678,22 @@ private:
     return rippleStackIntrinsics(const_cast<Instruction *>(I));
   }
 
+  /// @brief Returns all intrinsics that are Ripple reshape instructions
+  /// @param I an instruction
+  /// @return a pointer if I is a Ripple reshape, nullptr otherwise
+  static IntrinsicInst *rippleReshapeIntrinsics(Instruction *I);
+  static const IntrinsicInst *rippleReshapeIntrinsics(const Instruction *I) {
+    return rippleReshapeIntrinsics(const_cast<Instruction *>(I));
+  }
+
+  /// @brief Returns all intrinsics that are Ripple reinterp instructions
+  /// @param I an instruction
+  /// @return a pointer if I is a Ripple reinterp, nullptr otherwise
+  static IntrinsicInst *rippleReinterpIntrinsics(Instruction *I);
+  static const IntrinsicInst *rippleReinterpIntrinsics(const Instruction *I) {
+    return rippleReinterpIntrinsics(const_cast<Instruction *>(I));
+  }
+
   /// @brief Returns all intrinsics that are Ripple reductions
   /// @param I an instruction
   /// @return a pointer if I is a Ripple reduction, nullptr otherwise
@@ -1944,6 +1960,12 @@ private:
 
   /// @brief Checks the given ripple block intrinsics for issues
   Error checkRippleStackIntrinsics(IntrinsicInst *I);
+
+  /// @brief Checks the given ripple reshape intrinsics for issues
+  Error checkRippleReshapeIntrinsics(IntrinsicInst *I);
+
+  /// @brief Checks the given ripple reinterp intrinsics for issues
+  Error checkRippleReinterpIntrinsics(IntrinsicInst *I);
 
   /// @brief Checks the given reduction intrinsics for issues
   Error checkRippleReductionIntrinsics(IntrinsicInst *I);

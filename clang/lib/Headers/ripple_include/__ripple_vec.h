@@ -1348,6 +1348,214 @@ ripple_stack(ripple_block_t BS, char Val, VArgs... args) {
 
 #endif // defined(__cplusplus)
 
+/* ____________________________ Block reshaping ______________________________*/
+
+#define __ripple_reshape_any_int(Type, UI, BS, Val)                            \
+  ((Type)(sizeof(Type) == 1                                                    \
+              ? __builtin_ripple_reshape_##UI##8(BS, Val)                      \
+              : (sizeof(Type) == 2                                             \
+                     ? __builtin_ripple_reshape_##UI##16(BS, Val)              \
+                     : (sizeof(Type) == 4                                      \
+                            ? __builtin_ripple_reshape_##UI##32(BS, Val)       \
+                            : __builtin_ripple_reshape_##UI##64(BS, Val)))))
+
+#ifndef __cplusplus
+
+#if __has_bf16__
+#if __has_soft_bf16__
+#define __extra_bf16_ripple_reshape(BS, Val)                                   \
+  , __bf16 : (__bf16)__builtin_ripple_reshape_f32((BS), (float)(Val))
+#else
+#define __extra_bf16_ripple_reshape(BS, Val)                                   \
+  , __bf16 : __builtin_ripple_reshape_bf16((BS), (Val))
+#endif // __has_soft_bf16__
+#else
+#define __extra_bf16_ripple_reshape(BS, Val)
+#endif
+
+#if __has_Float16__
+#define __extra_f16_ripple_reshape(BS, Val)                                    \
+  , _Float16 : __builtin_ripple_reshape_f16(BS, Val)
+#else
+#define __extra_f16_ripple_reshape(BS, Val)
+#endif
+
+#define ripple_reshape(BS, Val)                                                \
+  RIPPLE_DISABLE_GENERIC_WARNING                                               \
+  _Generic((Val),                                                              \
+      char: (__ripple_char_is_signed                                           \
+                 ? __ripple_reshape_any_int(char, i, (BS), (Val))              \
+                 : __ripple_reshape_any_int(char, u, (BS), (Val))),            \
+      signed char: __ripple_reshape_any_int(char, i, (BS), (Val)),             \
+      unsigned char: __ripple_reshape_any_int(char, u, (BS), (Val)),           \
+      signed short: __ripple_reshape_any_int(signed short, i, (BS), (Val)),    \
+      unsigned short: __ripple_reshape_any_int(unsigned short, u, (BS),        \
+                                               (Val)),                         \
+      signed int: __ripple_reshape_any_int(signed int, i, (BS), (Val)),        \
+      unsigned int: __ripple_reshape_any_int(unsigned int, u, (BS), (Val)),    \
+      signed long: __ripple_reshape_any_int(signed long, i, (BS), (Val)),      \
+      unsigned long: __ripple_reshape_any_int(unsigned long, u, (BS), (Val)),  \
+      signed long long: __ripple_reshape_any_int(signed long long, i, (BS),    \
+                                                 (Val)),                       \
+      unsigned long long: __ripple_reshape_any_int(unsigned long long, u,      \
+                                                   (BS), (Val)),               \
+      float: __builtin_ripple_reshape_f32((BS), (Val)),                        \
+      double: __builtin_ripple_reshape_f64((BS), (Val))                        \
+          __extra_f16_ripple_reshape((BS), (Val))                              \
+              __extra_bf16_ripple_reshape((BS), (Val)))                        \
+      RIPPLE_REENABLE_GENERIC_WARNING
+
+#else // defined(__cplusplus)
+
+#define spec_reshape(CT, T)                                                    \
+  __attribute__((always_inline)) static CT ripple_reshape(ripple_block_t BS,   \
+                                                          CT Val) {            \
+    return __builtin_ripple_reshape_##T((BS), (Val));                          \
+  }
+
+#define spec_reshape_int(CT, UI)                                               \
+  __attribute__((always_inline)) static CT ripple_reshape(ripple_block_t BS,   \
+                                                          CT Val) {            \
+    return __ripple_reshape_any_int(CT, UI, (BS), (Val));                      \
+  }
+
+#if __has_bf16__
+#if __has_soft_bf16__
+__attribute__((always_inline)) static __bf16 ripple_reshape(ripple_block_t BS,
+                                                            __bf16 Val) {
+  return __builtin_ripple_reshape_f32((BS), (float)(Val));
+}
+#else
+__attribute__((always_inline)) static __bf16 ripple_reshape(ripple_block_t BS,
+                                                            __bf16 Val) {
+  return __builtin_ripple_reshape_bf16((BS), (Val));
+}
+#endif
+#endif
+
+#if __has_Float16__
+__attribute__((always_inline)) static _Float16 ripple_reshape(ripple_block_t BS,
+                                                              _Float16 Val) {
+  return __builtin_ripple_reshape_f16((BS), (Val));
+}
+#endif
+
+#define spec_reshape_ftypes()                                                  \
+  spec_reshape(float, f32);                                                    \
+  spec_reshape(double, f64);
+
+#define spec_reshape_itypes()                                                  \
+  spec_reshape_int(signed char, i);                                            \
+  spec_reshape_int(unsigned char, u);                                          \
+  spec_reshape_int(signed short, i);                                           \
+  spec_reshape_int(unsigned short, u);                                         \
+  spec_reshape_int(signed int, i);                                             \
+  spec_reshape_int(unsigned int, u);                                           \
+  spec_reshape_int(signed long, i);                                            \
+  spec_reshape_int(unsigned long, u);                                          \
+  spec_reshape_int(signed long long, i);                                       \
+  spec_reshape_int(unsigned long long, u);
+
+spec_reshape_ftypes();
+spec_reshape_itypes();
+
+__attribute__((always_inline)) static char ripple_reshape(ripple_block_t BS,
+                                                          char Val) {
+  return __ripple_char_is_signed ? __ripple_reshape_any_int(char, i, BS, Val)
+                                 : __ripple_reshape_any_int(char, u, BS, Val);
+}
+
+#define ripple_reshape(BS, Val) ripple_reshape((BS), (Val))
+
+#undef spec_reshape
+#undef spec_reshape_int
+#undef spec_reshape_itypes
+#undef spec_reshape_ftypes
+#undef __ripple_reshape_any_int
+
+#endif // defined(__cplusplus)
+
+/* ____________________________ Block reinterp ______________________________*/
+
+#ifndef __cplusplus
+
+// Typed-destination reinterp: ripple_reinterp_i8 / ripple_reinterp_u8 / etc.
+// The destination type is fixed by the macro name; the source type is
+// resolved by _Generic on Val. Mirrors the C++ overload sets produced by
+// spec_reinterp_to_all_src below.
+#define __ripple_reinterp_to_dst(DST, BS, Val)                                \
+  RIPPLE_DISABLE_GENERIC_WARNING                                              \
+  _Generic((Val),                                                             \
+      char: (__ripple_char_is_signed                                          \
+                 ? __builtin_ripple_reinterp_##DST##_i8((BS), (Val))          \
+                 : __builtin_ripple_reinterp_##DST##_u8((BS), (Val))),        \
+      signed char: __builtin_ripple_reinterp_##DST##_i8((BS), (Val)),         \
+      unsigned char: __builtin_ripple_reinterp_##DST##_u8((BS), (Val)),       \
+      signed short: __builtin_ripple_reinterp_##DST##_i16((BS), (Val)),       \
+      unsigned short: __builtin_ripple_reinterp_##DST##_u16((BS), (Val)),     \
+      signed int: __builtin_ripple_reinterp_##DST##_i32((BS), (Val)),         \
+      unsigned int: __builtin_ripple_reinterp_##DST##_u32((BS), (Val)),       \
+      signed long long: __builtin_ripple_reinterp_##DST##_i64((BS), (Val)),   \
+      unsigned long long: __builtin_ripple_reinterp_##DST##_u64((BS), (Val))) \
+  RIPPLE_REENABLE_GENERIC_WARNING
+
+#define ripple_reinterp_i8(BS, Val)  __ripple_reinterp_to_dst(i8,  (BS), (Val))
+#define ripple_reinterp_u8(BS, Val)  __ripple_reinterp_to_dst(u8,  (BS), (Val))
+#define ripple_reinterp_i16(BS, Val) __ripple_reinterp_to_dst(i16, (BS), (Val))
+#define ripple_reinterp_u16(BS, Val) __ripple_reinterp_to_dst(u16, (BS), (Val))
+#define ripple_reinterp_i32(BS, Val) __ripple_reinterp_to_dst(i32, (BS), (Val))
+#define ripple_reinterp_u32(BS, Val) __ripple_reinterp_to_dst(u32, (BS), (Val))
+#define ripple_reinterp_i64(BS, Val) __ripple_reinterp_to_dst(i64, (BS), (Val))
+#define ripple_reinterp_u64(BS, Val) __ripple_reinterp_to_dst(u64, (BS), (Val))
+
+#else // defined(__cplusplus)
+
+// Typed-destination reinterp: ripple_reinterp_i8 / ripple_reinterp_u8 / etc.
+// The return type is fixed; the input type can be any scalar type.
+// Each macro expands one overload per source type.
+#define spec_reinterp_to(DST_CT, DST_BUILTIN, SRC_CT, SRC_BUILTIN)             \
+  __attribute__((always_inline)) static DST_CT ripple_reinterp_##DST_BUILTIN(  \
+      ripple_block_t BS, SRC_CT Val) {                                         \
+    return (DST_CT)__builtin_ripple_reinterp_##DST_BUILTIN##_##SRC_BUILTIN(    \
+        BS, Val);                                                              \
+  }
+
+#define spec_reinterp_to_char(DST_CT, DST_BUILTIN)                             \
+  __attribute__((always_inline)) static DST_CT ripple_reinterp_##DST_BUILTIN(  \
+      ripple_block_t BS, char Val) {                                           \
+    return __ripple_char_is_signed                                             \
+               ? (DST_CT)__builtin_ripple_reinterp_##DST_BUILTIN##_i8(BS, Val) \
+               : (DST_CT)__builtin_ripple_reinterp_##DST_BUILTIN##_u8(BS,      \
+                                                                      Val);    \
+  }
+
+// Emit all source-type overloads for one fixed destination type.
+#define spec_reinterp_to_all_src(DST_CT, DST_BUILTIN)                          \
+  spec_reinterp_to_char(DST_CT, DST_BUILTIN);                                  \
+  spec_reinterp_to(DST_CT, DST_BUILTIN, signed char, i8);                      \
+  spec_reinterp_to(DST_CT, DST_BUILTIN, unsigned char, u8);                    \
+  spec_reinterp_to(DST_CT, DST_BUILTIN, signed short, i16);                    \
+  spec_reinterp_to(DST_CT, DST_BUILTIN, unsigned short, u16);                  \
+  spec_reinterp_to(DST_CT, DST_BUILTIN, signed int, i32);                      \
+  spec_reinterp_to(DST_CT, DST_BUILTIN, unsigned int, u32);                    \
+  spec_reinterp_to(DST_CT, DST_BUILTIN, signed long long, i64);                \
+  spec_reinterp_to(DST_CT, DST_BUILTIN, unsigned long long, u64);
+
+spec_reinterp_to_all_src(signed char, i8);
+spec_reinterp_to_all_src(unsigned char, u8);
+spec_reinterp_to_all_src(signed short, i16);
+spec_reinterp_to_all_src(unsigned short, u16);
+spec_reinterp_to_all_src(signed int, i32);
+spec_reinterp_to_all_src(unsigned int, u32);
+spec_reinterp_to_all_src(signed long long, i64);
+spec_reinterp_to_all_src(unsigned long long, u64);
+
+#undef spec_reinterp_to_all_src
+#undef spec_reinterp_to_all
+#undef spec_reinterp_to
+
+#endif // defined(__cplusplus)
+
 /* _____________________________ Block slicing _______________________________*/
 
 #define __ripple_slice_any_int(Type, UI, Val, ...)                             \
