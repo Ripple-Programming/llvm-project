@@ -2626,7 +2626,7 @@ class AsmConstraintsInfo {
   SmallVector<TargetInfo::ConstraintInfo, 4> OutputConstraintInfos;
   SmallVector<TargetInfo::ConstraintInfo, 4> InputConstraintInfos;
 
-  // Constraint strings.
+  // Constraint strings.R
   std::string Constraints;
   std::string InOutConstraints;
 
