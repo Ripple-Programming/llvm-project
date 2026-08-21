@@ -50,6 +50,44 @@ void multi_window_load_row_major(int16_t A[32][32], int16_t *Out) {
     Out[v1 * 4 + v0] = A[v1][v0];
 }
 
+// Row-major 4x4 tile load with holes within each load window.
+//
+// The accessed byte offsets are:
+//
+//   0,4,8,12,
+//   64,68,72,76,
+//   128,132,136,140,
+//   192,196,200,204
+//
+// Each row fits within a single vector-sized load window, but the requested
+// elements are non-contiguous. Ripple should form four windows and use a
+// sparse mask to load only the requested elements.
+//
+// CHECK-LABEL: define{{.*}}@multi_window_load_with_holes
+// First window loads offsets [0, 4, 8, 12].
+// CHECK: [[ROW_LOAD0:%[^ ]+]] = {{.*}}call <16 x i16> @llvm.masked.load.v16i16.p0(ptr align 2 %A, <16 x i1> <i1 true, i1 false, i1 true, i1 false, i1 true, i1 false, i1 true, i1 false,
+//
+// Second window starts at byte offset 64.
+// CHECK: [[ROW_BASE1:%[^ ]+]] = getelementptr i8, ptr %A, i64 64
+// Second window loads offsets [64, 68, 72, 76].
+// CHECK: [[ROW_LOAD1:%[^ ]+]] = {{.*}}call <16 x i16> @llvm.masked.load.v16i16.p0(ptr align 2 [[ROW_BASE1]], <16 x i1> <i1 true, i1 false, i1 true, i1 false, i1 true, i1 false, i1 true, i1 false,
+//
+// In the final result, merge lane 0-3 using local lanes from 0,2,4 and 6 from first window
+// Similarly, merge lane 4-7 in the result using local lanes 0,2,4 and 6 from second window
+// CHECK: [[ROW_MERGE1_2:%[^ ]+]] = shufflevector <16 x i16> [[ROW_LOAD0]], <16 x i16> [[ROW_LOAD1]], <16 x i32> <i32 0, i32 2, i32 4, i32 6, i32 16, i32 18, i32 20, i32 22, i32 poison, i32 poison, i32 poison, i32 poison, i32 poison, i32 poison, i32 poison, i32 poison>
+//
+// Remaining two window loads.
+// CHECK-COUNT-2: call <16 x i16> @llvm.masked.load.v16i16.p0
+//
+// CHECK: store <16 x i16>
+void multi_window_load_with_holes(int16_t A[32][32], int16_t *Out) {
+    ripple_block_t BS = ripple_set_block_shape(VEC, 4, 4);
+    size_t v0 = ripple_id(BS, 0);
+    size_t v1 = ripple_id(BS, 1);
+
+    Out[v1 * 4 + v0] = A[v1][v0 * 2];
+}
+
 // Column-major (transposed) 4x4 tile load from a 32x32 matrix.
 //
 // The accessed addresses are:
